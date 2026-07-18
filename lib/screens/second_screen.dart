@@ -1,38 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import 'third_screen.dart';
 
-class SecondScreen extends StatefulWidget {
-  final String userName;
+class SecondScreen extends StatelessWidget {
+  const SecondScreen({super.key});
 
-  const SecondScreen({super.key, required this.userName});
-
-  @override
-  State<SecondScreen> createState() => _SecondScreenState();
-}
-
-class _SecondScreenState extends State<SecondScreen> {
-  String _selectedUserName = 'Selected User Name';
-
-  void _goToThirdScreen() async {
-    final result = await Navigator.push<String>(
+  void _goToThirdScreen(BuildContext context) {
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ThirdScreen(
-          onUserSelected: (_) {},
-        ),
+        builder: (_) => const ThirdScreen(),
       ),
     );
-    if (result != null && mounted) {
-      setState(() {
-        _selectedUserName = result;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool hasSelectedUser = _selectedUserName != 'Selected User Name';
+    final userProvider = context.watch<UserProvider>();
+    final String userName = userProvider.userName;
+    final String selectedUserName = userProvider.selectedUserName;
+    final bool hasSelectedUser = selectedUserName != 'Selected User Name';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -72,7 +61,7 @@ class _SecondScreenState extends State<SecondScreen> {
             const SizedBox(height: 2),
             // Name from first screen
             Text(
-              widget.userName,
+              userName,
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -90,20 +79,20 @@ class _SecondScreenState extends State<SecondScreen> {
                   color: hasSelectedUser ? Colors.black87 : Colors.black54,
                 ),
                 child: Text(
-                  _selectedUserName,
+                  selectedUserName,
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
             const Spacer(),
-            // Choose a user button
+            // Choose a User button
             Padding(
               padding: const EdgeInsets.only(bottom: 40.0),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _goToThirdScreen,
+                  onPressed: () => _goToThirdScreen(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2B637B),
                     foregroundColor: Colors.white,

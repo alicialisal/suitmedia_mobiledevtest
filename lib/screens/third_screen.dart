@@ -1,65 +1,27 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
-// ── Data model ───────────────────────────────────────────────────────────────
-
-class UserModel {
-  final int id;
-  final String email;
-  final String firstName;
-  final String lastName;
-  final String avatar;
-
-  const UserModel({
-    required this.id,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
-    required this.avatar,
-  });
-
-  String get fullName => '$firstName $lastName';
-
-  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as int,
-        email: json['email'] as String,
-        firstName: json['first_name'] as String,
-        lastName: json['last_name'] as String,
-        avatar: json['avatar'] as String,
-      );
-}
-
-// ── Third Screen ─────────────────────────────────────────────────────────────
+import '../models/user_model.dart';
+import '../providers/user_provider.dart';
+import '../providers/user_list_provider.dart';
 
 class ThirdScreen extends StatefulWidget {
-  final void Function(String name) onUserSelected;
-
-  const ThirdScreen({super.key, required this.onUserSelected});
+  const ThirdScreen({super.key});
 
   @override
   State<ThirdScreen> createState() => _ThirdScreenState();
 }
 
 class _ThirdScreenState extends State<ThirdScreen> {
-  static const String _apiKey = 'free_user_3Gf07asKZphGhEN48JG3jSJCMtS';
-  static const int _perPage = 10;
-
-  final List<UserModel> _users = [];
   final ScrollController _scrollController = ScrollController();
-
-  int _currentPage = 1;
-  int _totalPages = 1;
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers(page: 1, isRefresh: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserListProvider>().fetchUsers(page: 1, isRefresh: true);
+    });
     _scrollController.addListener(_onScroll);
   }
 
@@ -74,85 +36,13 @@ class _ThirdScreenState extends State<ThirdScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 120) {
-      if (!_isLoading && !_isLoadingMore && _currentPage < _totalPages) {
-        _fetchUsers(page: _currentPage + 1);
-      }
+      context.read<UserListProvider>().fetchNextPage();
     }
-  }
-
-  Future<void> _fetchUsers(
-      {required int page, bool isRefresh = false}) async {
-    if (isRefresh) {
-      setState(() {
-        if (_users.isEmpty) {
-          _isLoading = true;
-        }
-        _errorMessage = null;
-      });
-    } else {
-      if (_isLoadingMore) return;
-      setState(() => _isLoadingMore = true);
-    }
-
-    try {
-      final uri = Uri.https(
-        'reqres.in',
-        '/api/users',
-        {'page': '$page', 'per_page': '$_perPage'},
-      );
-
-      final response = await http.get(
-        uri,
-        headers: {'x-api-key': _apiKey},
-      ).timeout(const Duration(seconds: 15));
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        final List<UserModel> newUsers = (body['data'] as List)
-            .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-        final int totalPages = (body['total_pages'] as int?) ?? 1;
-
-        setState(() {
-          if (isRefresh) {
-            _users.clear();
-            _currentPage = 1;
-          }
-          _users.addAll(newUsers);
-          _currentPage = page;
-          _totalPages = totalPages;
-          _isLoading = false;
-          _isLoadingMore = false;
-          _errorMessage = null;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-          _isLoadingMore = false;
-          _errorMessage =
-              'Server error ${response.statusCode}. Please try again.';
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-        _errorMessage =
-            'Failed to connect. Please check your internet connection.';
-      });
-    }
-  }
-
-  Future<void> _onRefresh() async {
-    await _fetchUsers(page: 1, isRefresh: true);
   }
 
   void _onUserTap(UserModel user) {
-    widget.onUserSelected(user.fullName);
-    Navigator.pop(context, user.fullName);
+    context.read<UserProvider>().setSelectedUserName(user.fullName);
+    Navigator.pop(context);
   }
 
   @override
@@ -183,27 +73,29 @@ class _ThirdScreenState extends State<ThirdScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    final listProvider = context.watch<UserListProvider>();
+
+    if (listProvider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF2B637B)),
       );
     }
 
-    if (_errorMessage != null && _users.isEmpty) {
-      return _buildErrorState();
+    if (listProvider.errorMessage != null && listProvider.users.isEmpty) {
+      return _buildErrorState(listProvider);
     }
 
-    if (_users.isEmpty) {
-      return _buildEmptyState();
+    if (listProvider.users.isEmpty) {
+      return _buildEmptyState(listProvider);
     }
 
     return RefreshIndicator(
       color: const Color(0xFF2B637B),
-      onRefresh: _onRefresh,
+      onRefresh: listProvider.refresh,
       child: ListView.separated(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _users.length + (_isLoadingMore ? 1 : 0),
+        itemCount: listProvider.users.length + (listProvider.isLoadingMore ? 1 : 0),
         separatorBuilder: (_, _) => Divider(
           height: 1,
           indent: 82,
@@ -211,7 +103,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
           color: Colors.grey.shade200,
         ),
         itemBuilder: (context, index) {
-          if (index == _users.length) {
+          if (index == listProvider.users.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(
@@ -219,7 +111,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
               ),
             );
           }
-          return _buildUserTile(_users[index]);
+          return _buildUserTile(listProvider.users[index]);
         },
       ),
     );
@@ -289,10 +181,10 @@ class _ThirdScreenState extends State<ThirdScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(UserListProvider listProvider) {
     return RefreshIndicator(
       color: const Color(0xFF2B637B),
-      onRefresh: _onRefresh,
+      onRefresh: listProvider.refresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: SizedBox(
@@ -325,10 +217,10 @@ class _ThirdScreenState extends State<ThirdScreen> {
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(UserListProvider listProvider) {
     return RefreshIndicator(
       color: const Color(0xFF2B637B),
-      onRefresh: _onRefresh,
+      onRefresh: listProvider.refresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: SizedBox(
@@ -351,7 +243,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
-                  _errorMessage ?? '',
+                  listProvider.errorMessage ?? '',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
@@ -361,7 +253,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _onRefresh,
+                onPressed: listProvider.refresh,
                 icon: const Icon(Icons.refresh, size: 18),
                 label: Text(
                   'Try Again',

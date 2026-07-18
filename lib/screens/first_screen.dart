@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import 'second_screen.dart';
 
 class FirstScreen extends StatefulWidget {
@@ -73,9 +75,11 @@ class _FirstScreenState extends State<FirstScreen> {
       _showDialog('Name Required', 'Please enter your name to continue!');
       return;
     }
+    context.read<UserProvider>().setUserName(name);
+    context.read<UserProvider>().clearSelection();
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => SecondScreen(userName: name)),
+      MaterialPageRoute(builder: (_) => const SecondScreen()),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/user_provider.dart';
 import 'third_screen.dart';
 
@@ -21,7 +22,6 @@ class SecondScreen extends StatelessWidget {
     final userProvider = context.watch<UserProvider>();
     final String userName = userProvider.userName;
     final String selectedUserName = userProvider.selectedUserName;
-    final bool hasSelectedUser = selectedUserName != 'Selected User Name';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -74,9 +74,9 @@ class SecondScreen extends StatelessWidget {
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 300),
                 style: GoogleFonts.poppins(
-                  fontSize: hasSelectedUser ? 20 : 22,
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: hasSelectedUser ? Colors.black87 : Colors.black54,
+                  color: Colors.black87,
                 ),
                 child: Text(
                   selectedUserName,

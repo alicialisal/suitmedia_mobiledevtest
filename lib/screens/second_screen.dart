@@ -70,7 +70,7 @@ class _SecondScreenState extends State<SecondScreen> {
               ),
             ),
             const SizedBox(height: 2),
-            // Dynamic name from first screen
+            // Name from first screen
             Text(
               widget.userName,
               style: GoogleFonts.poppins(
@@ -80,7 +80,7 @@ class _SecondScreenState extends State<SecondScreen> {
               ),
             ),
             const Spacer(),
-            // Selected User Name (center)
+            // Selected name for third screen
             Center(
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 300),
@@ -96,7 +96,7 @@ class _SecondScreenState extends State<SecondScreen> {
               ),
             ),
             const Spacer(),
-            // Choose a User button
+            // Choose a user button
             Padding(
               padding: const EdgeInsets.only(bottom: 40.0),
               child: SizedBox(

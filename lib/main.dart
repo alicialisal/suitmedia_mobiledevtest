@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/first_screen.dart';
@@ -14,6 +15,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Suitmedia Dev Test',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+        },
+      ),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2B637B)),
         textTheme: GoogleFonts.poppinsTextTheme(),

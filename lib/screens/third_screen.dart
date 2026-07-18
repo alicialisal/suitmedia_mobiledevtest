@@ -74,7 +74,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 120) {
-      if (!_isLoadingMore && _currentPage < _totalPages) {
+      if (!_isLoading && !_isLoadingMore && _currentPage < _totalPages) {
         _fetchUsers(page: _currentPage + 1);
       }
     }
@@ -84,7 +84,9 @@ class _ThirdScreenState extends State<ThirdScreen> {
       {required int page, bool isRefresh = false}) async {
     if (isRefresh) {
       setState(() {
-        _isLoading = true;
+        if (_users.isEmpty) {
+          _isLoading = true;
+        }
         _errorMessage = null;
       });
     } else {
@@ -152,8 +154,6 @@ class _ThirdScreenState extends State<ThirdScreen> {
     widget.onUserSelected(user.fullName);
     Navigator.pop(context, user.fullName);
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
